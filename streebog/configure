@@ -1,0 +1,80 @@
+#!/bin/sh
+#
+# Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>.
+# All rights reserved.
+#
+# Detect various compile-time options and create config.h.
+#
+# $Id$
+
+set -e
+
+LC_ALL=C
+export LC_ALL
+
+CC=${CC:-cc}
+
+AUTO_CONF_H="gost3411-2012-config.h"
+AUTO_CONF_MK="auto/Makefile"
+
+cat > ${AUTO_CONF_H}.t < /dev/null
+cat > ${AUTO_CONF_MK}.t < /dev/null
+
+if [ -z "${PLATFORM}" ]; then
+    SYSTEM=`uname -s 2>/dev/null`
+
+    RELEASE=`uname -r 2>/dev/null`
+
+    MACHINE=`uname -m 2>/dev/null`
+
+    PLATFORM="$SYSTEM:$RELEASE:$MACHINE";
+
+    case "$SYSTEM" in
+        MINGW32_* | MINGW64_* | MSYS_*)
+            PLATFORM=win32
+        ;;
+    esac
+fi
+
+export PLATFORM
+
+echo "building for $PLATFORM"
+
+case "$PLATFORM" in
+    Linux:*)
+        . auto/os/linux
+    ;;
+esac
+
+for file in auto/header/*
+do
+    env CC=${CC} sh ${file} >> ${AUTO_CONF_H}.t 2>/dev/null
+done
+
+for file in auto/mk/*
+do
+    env CC=${CC} sh ${file} >> ${AUTO_CONF_MK}.t 2>/dev/null
+done
+
+cat <<EOF >${AUTO_CONF_MK}
+CC=${CC}
+CFLAGS=${INCLUDES} ${CFLAGS} ${CC_OS_FLAGS}
+SOURCES=${SOURCES}
+EOF
+
+cat ${AUTO_CONF_MK}.t >> ${AUTO_CONF_MK} && rm -f ${AUTO_CONF_MK}.t
+
+cat >>${AUTO_CONF_MK} <<"EOF" 
+
+compile:
+	$(CC) $(CFLAGS) -o gost3411-2012 $(SOURCES)
+EOF
+
+mv ${AUTO_CONF_H}.t ${AUTO_CONF_H}
+
+if [ ! -z "${SUPERCOP}" ]; then
+    cat >api.h <<EOF
+#define CRYPTO_BYTES 64
+#define CRYPTO_VERSION "`cat VERSION`"
+EOF
+fi

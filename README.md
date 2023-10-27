@@ -1,4 +1,4 @@
-# Shipovniku
+# Shipovnik
 
 [«Шиповник»](https://kryptonite.ru/articles/how-eds-will-change-in-the-post-quantum-era/) - схема электронной подписи, построенная методом применения преобразования Фиата-Шамира к протоколу идентификации Штерна (с нулевым разглашением)
 
